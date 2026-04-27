@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Drop 🟦</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body{
+  background:#000;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  font-family:'Orbitron',monospace;
+  color:#fff;
+  overflow:hidden;
+  user-select:none;
+}
+
+/* CRT scanlines */
+body::after{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.13) 2px,rgba(0,0,0,0.13) 4px);
+  pointer-events:none;
+  z-index:900;
+}
+
+.game-wrapper{
+  display:flex;
+  align-items:stretch;
+  gap:10px;
+}
+
+.panel{
+  width:130px;
+  background:#05050d;
+  border:1px solid #111128;
+  border-radius:8px;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  box-shadow:0 0 24px rgba(0,80,255,0.08);
+}
+
+.panel-box{
+  border:1px solid #111128;
+  border-radius:6px;
+  padding:8px;
+  background:#020208;
+}
+
+.panel-label{
+  font-size:0.48rem;
+  letter-spacing:3px;
+  color:#223388;
+  text-transform:uppercase;
+  margin-bottom:5px;
+  font-weight:700;
+}
+
+.panel-value{
+  font-size:0.95rem;
+  font-weight:900;
+  color:#00f0f0;
+  text-shadow:0 0 8px #00f0f0;
+  letter-spacing:1px;
+}
+
+.controls-list{
+  font-size:0.42rem;
+  letter-spacing:0.5px;
+  color:#223;
+  line-height:2.1;
+}
+.controls-list b{color:#334455;}
+
+#board-container{
+  position:relative;
+  flex-shrink:0;
+}
+
+#gameCanvas{
+  display:block;
+  border:1px solid #111128;
+  box-shadow:0 0 40px rgba(0,80,255,0.12),0 0 80px rgba(0,0,0,0.8);
+}
+
+#particleCanvas{
+  position:absolute;
+  top:0;left:0;
+  pointer-events:none;
+  z-index:10;
+}
+
+#overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.88);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  z-index:50;
+}
+
+.ov-title{
+  font-size:2.4rem;
+  font-weight:900;
+  letter-spacing:6px;
+}
+.cyan{color:#00f0f0;text-shadow:0 0 20px #00f0f0,0 0 50px #00f0f0;}
+.red {color:#ff2040;text-shadow:0 0 20px #ff2040,0 0 50px #ff2040;}
+.gold{color:#ffd700;text-shadow:0 0 20px #ffd700,0 0 50px #ffd700;}
+
+.ov-sub{
+  font-size:0.58rem;
+  letter-spacing:4px;
+  color:#888;
+  animation:blink 1s step-start infinite;
+}
+.ov-row{font-size:0.65rem;letter-spacing:2px;color:#444;}
+.ov-row span{color:#00f0f0;}
+
+#tetris-text{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  font-size:1.3rem;
+  font-weight:900;
+  letter-spacing:5px;
+  color:#ffd700;
+  text-shadow:0 0 20px #ffd700,0 0 50px #ffd700;
+  pointer-events:none;
+  z-index:20;
+  opacity:0;
+  transition:none;
+}
+
+.mini-canvas{display:block;margin:0 auto;}
+
+.hold-dim{opacity:0.35;}
+
+#mobile-controls{
+  display:none;
+  margin-top:10px;
+  gap:6px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.mob-btn{
+  width:52px;height:52px;
+  background:#080812;
+  border:1px solid #1a1a2e;
+  border-radius:8px;
+  font-size:1.2rem;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.mob-btn:active{background:#12122a;}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-5px)}
+  40%{transform:translateX(5px)}
+  60%{transform:translateX(-3px)}
+  80%{transform:translateX(3px)}
+}
+.shake{animation:shake 0.18s ease;}
+
+@media(max-width:680px),(hover:none){
+  #mobile-controls{display:flex;}
+  .panel{width:90px;}
+  .panel-value{font-size:0.8rem;}
+}
+</style>
+</head>
+<body>
+
+<div class="game-wrapper">
+
+  <!-- Left Panel -->
+  <div class="panel">
+    <div class="panel-box" id="holdBox">
+      <div class="panel-label">Hold</div>
+      <canvas class="mini-canvas" id="holdCanvas" width="78" height="58"></canvas>
+    </div>
+    <div class="panel-box">
+      <div class="panel-label">Score</div>
+      <div class="panel-value" id="scoreVal">000000</div>
+    </div>
+    <div class="panel-box">
+      <div class="panel-label">Best</div>
+      <div class="panel-value" id="bestVal">000000</div>
+    </div>
+    <div class="panel-box">
+      <div class="panel-label">Level</div>
+      <div class="panel-value" id="levelVal">1</div>
+    </div>
+    <div class="panel-box">
+      <div class="panel-label">Lines</div>
+      <div class="panel-value" id="linesVal">0</div>
+    </div>
+  </div>
+
+  <!-- Board -->
+  <div id="board-container">
+    <canvas id="gameCanvas"></canvas>
+    <canvas id="particleCanvas"></canvas>
+    <div id="tetris-text">TETRIS!</div>
+    <div id="overlay">
+      <div class="ov-title cyan">NEON DROP</div>
+      <div class="ov-sub">PRESS SPACE TO START</div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="panel">
+    <div class="panel-box">
+      <div class="panel-label">Next</div>
+      <canvas class="mini-canvas" id="nextCanvas" width="78" height="174"></canvas>
+    </div>
+    <div class="panel-box" style="flex:1">
+      <div class="panel-label">Controls</div>
+      <div class="controls-list">
+        <b>← →</b> Move<br>
+        <b>↓</b> Soft Drop<br>
+        <b>Space</b> Hard Drop<br>
+        <b>↑ / Z</b> Rotate CW<br>
+        <b>X</b> Rotate CCW<br>
+        <b>C</b> Hold<br>
+        <b>Esc</b> Pause
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="mobile-controls">
+  <div class="mob-btn" id="mb-left">◀</div>
+  <div class="mob-btn" id="mb-down">▼</div>
+  <div class="mob-btn" id="mb-right">▶</div>
+  <div class="mob-btn" id="mb-rotcw">↻</div>
+  <div class="mob-btn" id="mb-drop">⬇</div>
+  <div class="mob-btn" id="mb-hold">C</div>
+</div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+const COLS=10, ROWS=20, CELL=30;
+const W=COLS*CELL, H=ROWS*CELL;
+
+const canvas  = document.getElementById('gameCanvas');
+const ctx     = canvas.getContext('2d');
+canvas.width=W; canvas.height=H;
+
+const pCanvas = document.getElementById('particleCanvas');
+const pCtx    = pCanvas.getContext('2d');
+pCanvas.width=W; pCanvas.height=H;
+
+const hCanvas = document.getElementById('holdCanvas');
+const hCtx    = hCanvas.getContext('2d');
+
+const nCanvas = document.getElementById('nextCanvas');
+const nCtx    = nCanvas.getContext('2d');
+
+const overlay    = document.getElementById('overlay');
+const scoreEl    = document.getElementById('scoreVal');
+const bestEl     = document.getElementById('bestVal');
+const levelEl    = document.getElementById('levelVal');
+const linesEl    = document.getElementById('linesVal');
+const tetrisText = document.getElementById('tetris-text');
+const holdBox    = document.getElementById('holdBox');
+
+// ── Colors ────────────────────────────────────────────────────────────────────
+const COLOR = {I:'#00f0f0',O:'#f0f000',T:'#a000f0',S:'#00f000',Z:'#f00000',J:'#2255ff',L:'#f0a000'};
+const GLOW  = {I:'#00f0f0',O:'#f0f000',T:'#c040ff',S:'#00f000',Z:'#ff3333',J:'#4488ff',L:'#f0a000'};
+
+// ── Tetrominoes ───────────────────────────────────────────────────────────────
+const PIECES = {
+  I:[
+    [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+    [[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]],
+    [[0,0,0,0],[0,0,0,0],[1,1,1,1],[0,0,0,0]],
+    [[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]],
+  ],
+  O:[
+    [[0,1,1,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,1,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,1,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,1,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+  ],
+  T:[
+    [[0,1,0],[1,1,1],[0,0,0]],
+    [[0,1,0],[0,1,1],[0,1,0]],
+    [[0,0,0],[1,1,1],[0,1,0]],
+    [[0,1,0],[1,1,0],[0,1,0]],
+  ],
+  S:[
+    [[0,1,1],[1,1,0],[0,0,0]],
+    [[0,1,0],[0,1,1],[0,0,1]],
+    [[0,0,0],[0,1,1],[1,1,0]],
+    [[1,0,0],[1,1,0],[0,1,0]],
+  ],
+  Z:[
+    [[1,1,0],[0,1,1],[0,0,0]],
+    [[0,0,1],[0,1,1],[0,1,0]],
+    [[0,0,0],[1,1,0],[0,1,1]],
+    [[0,1,0],[1,1,0],[1,0,0]],
+  ],
+  J:[
+    [[1,0,0],[1,1,1],[0,0,0]],
+    [[0,1,1],[0,1,0],[0,1,0]],
+    [[0,0,0],[1,1,1],[0,0,1]],
+    [[0,1,0],[0,1,0],[1,1,0]],
+  ],
+  L:[
+    [[0,0,1],[1,1,1],[0,0,0]],
+    [[0,1,0],[0,1,0],[0,1,1]],
+    [[0,0,0],[1,1,1],[1,0,0]],
+    [[1,1,0],[0,1,0],[0,1,0]],
+  ],
+};
+
+// SRS wall kicks (y-down coords, excludes base test)
+const KICKS_JLSTZ = {
+  '0>1':[[-1,0],[-1,1],[0,-2],[-1,-2]],
+  '1>0':[[1,0],[1,-1],[0,2],[1,2]],
+  '1>2':[[1,0],[1,-1],[0,2],[1,2]],
+  '2>1':[[-1,0],[-1,1],[0,-2],[-1,-2]],
+  '2>3':[[1,0],[1,1],[0,-2],[1,-2]],
+  '3>2':[[-1,0],[-1,-1],[0,2],[-1,2]],
+  '3>0':[[-1,0],[-1,-1],[0,2],[-1,2]],
+  '0>3':[[1,0],[1,1],[0,-2],[1,-2]],
+};
+const KICKS_I = {
+  '0>1':[[-2,0],[1,0],[-2,-1],[1,2]],
+  '1>0':[[2,0],[-1,0],[2,1],[-1,-2]],
+  '1>2':[[-1,0],[2,0],[-1,2],[2,-1]],
+  '2>1':[[1,0],[-2,0],[1,-2],[-2,1]],
+  '2>3':[[2,0],[-1,0],[2,1],[-1,-2]],
+  '3>2':[[-2,0],[1,0],[-2,-1],[1,2]],
+  '3>0':[[1,0],[-2,0],[1,-2],[-2,1]],
+  '0>3':[[-1,0],[2,0],[-1,2],[2,-1]],
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let board, current, next3=[], held=null, holdUsed=false;
+let score=0, highScore=0, level=1, lines=0;
+let dropTimer=0, dropInterval=1000;
+let state='start'; // start | playing | paused | over | clearing
+let glowT=0;
+let flashRows=[], flashTimer=0, flashPhase=0;
+let lockCells=[], lockFlashT=0;
+let particles=[];
+let bag=[];
+let raf;
+
+// ── Bag ───────────────────────────────────────────────────────────────────────
+function refillBag(){
+  const t=['I','O','T','S','Z','J','L'];
+  for(let i=t.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[t[i],t[j]]=[t[j],t[i]];}
+  bag.push(...t);
+}
+function fromBag(){if(bag.length<4)refillBag();return bag.shift();}
+
+// ── Board helpers ─────────────────────────────────────────────────────────────
+function emptyBoard(){return Array.from({length:ROWS},()=>Array(COLS).fill(null));}
+
+function fits(p,dx=0,dy=0,rot=p.rot){
+  const m=PIECES[p.type][rot];
+  for(let r=0;r<m.length;r++) for(let c=0;c<m[r].length;c++){
+    if(!m[r][c]) continue;
+    const nx=p.x+c+dx, ny=p.y+r+dy;
+    if(nx<0||nx>=COLS||ny>=ROWS) return false;
+    if(ny>=0&&board[ny][nx]) return false;
+  }
+  return true;
+}
+
+function ghostY(){
+  let dy=0;
+  while(fits(current,0,dy+1)) dy++;
+  return current.y+dy;
+}
+
+// ── Rotation ──────────────────────────────────────────────────────────────────
+function rotate(dir){
+  if(state!=='playing') return;
+  const nr=(current.rot+(dir==='cw'?1:3))%4;
+  const key=`${current.rot}>${nr}`;
+  const kicks=current.type==='I'?KICKS_I[key]:KICKS_JLSTZ[key];
+
+  if(fits(current,0,0,nr)){current.rot=nr;return;}
+  if(kicks) for(const[kx,ky]of kicks){
+    if(fits(current,kx,ky,nr)){current.x+=kx;current.y+=ky;current.rot=nr;return;}
+  }
+}
+
+// ── Piece actions ─────────────────────────────────────────────────────────────
+function hardDrop(){
+  if(state!=='playing') return;
+  let dy=0;
+  while(fits(current,0,dy+1)) dy++;
+  score+=dy*2;
+  current.y+=dy;
+  lock();
+  shakeBoard();
+}
+
+function softDrop(){
+  if(state!=='playing') return;
+  if(fits(current,0,1)){current.y++;score+=1;dropTimer=0;}
+  else lock();
+}
+
+function doHold(){
+  if(state!=='playing'||holdUsed) return;
+  holdUsed=true;
+  const tmp=held;
+  held=current.type;
+  if(tmp===null) spawn();
+  else current=makePiece(tmp);
+  holdBox.className='panel-box hold-dim';
+  drawHold();
+}
+
+// ── Lock / spawn ──────────────────────────────────────────────────────────────
+function lock(){
+  const m=PIECES[current.type][current.rot];
+  lockCells=[];
+  for(let r=0;r<m.length;r++) for(let c=0;c<m[r].length;c++){
+    if(!m[r][c]) continue;
+    const ny=current.y+r, nx=current.x+c;
+    if(ny<0){endGame();return;}
+    board[ny][nx]=current.type;
+    lockCells.push([ny,nx]);
+  }
+  lockFlashT=8;
+  checkLines();
+}
+
+function checkLines(){
+  const full=[];
+  for(let r=0;r<ROWS;r++) if(board[r].every(c=>c!==null)) full.push(r);
+
+  if(!full.length){spawn();return;}
+
+  state='clearing';
+  flashRows=full;
+  flashTimer=0; flashPhase=0;
+
+  const pts=[0,100,300,500,800][full.length]*level;
+  score+=pts;
+  lines+=full.length;
+  level=Math.floor(lines/10)+1;
+  dropInterval=Math.max(100,1000-(level-1)*90);
+  if(score>highScore) highScore=score;
+  updateUI();
+  if(full.length===4) showTetrisText();
+}
+
+function clearLines(){
+  flashRows.forEach(r=>{
+    for(let c=0;c<COLS;c++){
+      if(board[r][c]) spawnParticles(c*CELL+CELL/2, r*CELL+CELL/2, COLOR[board[r][c]]);
+    }
+  });
+  flashRows.sort((a,b)=>b-a).forEach(r=>{board.splice(r,1);board.unshift(Array(COLS).fill(null));});
+  flashRows=[];
+  state='playing';
+  spawn();
+}
+
+function spawn(){
+  const type=next3.shift();
+  next3.push(fromBag());
+  current=makePiece(type);
+  holdUsed=false;
+  holdBox.className='panel-box';
+  if(!fits(current)){endGame();return;}
+  drawNext();
+}
+
+function makePiece(type){
+  const m=PIECES[type][0];
+  const x=Math.floor((COLS-m[0].length)/2);
+  return{type,rot:0,x,y:-1};
+}
+
+// ── Game flow ─────────────────────────────────────────────────────────────────
+function initGame(){
+  board=emptyBoard();
+  bag=[]; refillBag(); refillBag();
+  next3=[fromBag(),fromBag(),fromBag()];
+  held=null; holdUsed=false;
+  score=0; level=1; lines=0;
+  dropTimer=0; dropInterval=1000;
+  flashRows=[]; particles=[]; lockCells=[]; lockFlashT=0;
+  state='playing';
+  overlay.style.display='none';
+  holdBox.className='panel-box';
+  updateUI();
+  spawn();
+  drawHold();
+  drawNext();
+}
+
+function endGame(){
+  state='over';
+  if(score>highScore) highScore=score;
+  showOverlay('over');
+}
+
+function showOverlay(type){
+  overlay.style.display='flex';
+  if(type==='start'){
+    overlay.innerHTML=`<div class="ov-title cyan">NEON DROP</div><div class="ov-sub">PRESS SPACE TO START</div>`;
+  } else if(type==='over'){
+    overlay.innerHTML=`<div class="ov-title red">GAME OVER</div><div class="ov-row">SCORE <span>${score}</span></div><div class="ov-row">BEST <span>${highScore}</span></div><div class="ov-sub">PRESS SPACE TO RESTART</div>`;
+  } else {
+    overlay.innerHTML=`<div class="ov-title gold">PAUSED</div><div class="ov-sub">PRESS ESC TO RESUME</div>`;
+  }
+}
+
+function shakeBoard(){
+  const bc=document.getElementById('board-container');
+  bc.classList.remove('shake'); void bc.offsetWidth; bc.classList.add('shake');
+}
+
+function showTetrisText(){
+  tetrisText.style.transition='none';
+  tetrisText.style.opacity='1';
+  tetrisText.style.transform='translate(-50%,-50%)';
+  setTimeout(()=>{
+    tetrisText.style.transition='all 0.9s ease';
+    tetrisText.style.opacity='0';
+    tetrisText.style.transform='translate(-50%,-160%)';
+  },60);
+}
+
+// ── Particles ─────────────────────────────────────────────────────────────────
+function spawnParticles(x,y,color){
+  for(let i=0;i<10;i++){
+    const a=Math.random()*Math.PI*2, s=2+Math.random()*5;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,life:1,color,sz:2+Math.random()*4});
+  }
+}
+
+// ── UI update ─────────────────────────────────────────────────────────────────
+function updateUI(){
+  scoreEl.textContent=String(score).padStart(6,'0');
+  bestEl.textContent=String(highScore).padStart(6,'0');
+  levelEl.textContent=level;
+  linesEl.textContent=lines;
+}
+
+// ── Draw cell ─────────────────────────────────────────────────────────────────
+function drawCell(c,x,y,alpha=1,glow=false){
+  const col=COLOR[c];
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  if(glow){ctx.shadowColor=GLOW[c];ctx.shadowBlur=14;}
+  ctx.fillStyle=col;
+  ctx.fillRect(x+1,y+1,CELL-2,CELL-2);
+  ctx.fillStyle='rgba(255,255,255,0.32)';
+  ctx.fillRect(x+1,y+1,CELL-2,3);
+  ctx.fillRect(x+1,y+1,3,CELL-2);
+  ctx.fillStyle='rgba(0,0,0,0.38)';
+  ctx.fillRect(x+1,y+CELL-4,CELL-2,3);
+  ctx.fillRect(x+CELL-4,y+1,3,CELL-2);
+  ctx.restore();
+}
+
+function drawGhost(c,x,y){
+  ctx.save();
+  ctx.globalAlpha=0.16;
+  ctx.fillStyle=COLOR[c];
+  ctx.fillRect(x+1,y+1,CELL-2,CELL-2);
+  ctx.globalAlpha=0.38;
+  ctx.strokeStyle=COLOR[c];
+  ctx.lineWidth=1;
+  ctx.strokeRect(x+1.5,y+1.5,CELL-3,CELL-3);
+  ctx.restore();
+}
+
+// ── Draw board ────────────────────────────────────────────────────────────────
+function drawBoard(){
+  ctx.fillStyle='#030306';
+  ctx.fillRect(0,0,W,H);
+
+  // Grid lines
+  ctx.strokeStyle='rgba(15,15,40,0.9)';
+  ctx.lineWidth=0.5;
+  for(let c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(c*CELL,0);ctx.lineTo(c*CELL,H);ctx.stroke();}
+  for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*CELL);ctx.lineTo(W,r*CELL);ctx.stroke();}
+
+  // Board cells
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const cell=board[r][c];
+    if(!cell) continue;
+
+    if(flashRows.includes(r)){
+      if(flashPhase<6){
+        if(flashPhase%2===0){
+          ctx.fillStyle='#ffffff';
+          ctx.fillRect(c*CELL+1,r*CELL+1,CELL-2,CELL-2);
+        } else drawCell(cell,c*CELL,r*CELL);
+      } else {
+        const prog=(flashPhase-6)/10;
+        const dist=Math.abs(c+0.5-COLS/2)/(COLS/2);
+        if(dist>prog) drawCell(cell,c*CELL,r*CELL);
+      }
+      continue;
+    }
+
+    // Lock flash
+    if(lockFlashT>0&&lockCells.some(([lr,lc])=>lr===r&&lc===c)){
+      ctx.fillStyle='#ffffff';
+      ctx.fillRect(c*CELL+1,r*CELL+1,CELL-2,CELL-2);
+      continue;
+    }
+
+    drawCell(cell,c*CELL,r*CELL);
+  }
+
+  // 4-line board flash
+  if(flashRows.length===4&&flashPhase<4){
+    ctx.save();
+    ctx.globalAlpha=0.25*(1-flashPhase/4);
+    ctx.fillStyle='#0044ff';
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
+}
+
+function drawCurrent(){
+  if(!current) return;
+  const m=PIECES[current.type][current.rot];
+  const gy=ghostY();
+  const pulse=0.75+0.25*Math.sin(glowT);
+
+  // Ghost
+  for(let r=0;r<m.length;r++) for(let c=0;c<m[r].length;c++){
+    if(!m[r][c]) continue;
+    const gr=gy+r; if(gr<0) continue;
+    drawGhost(current.type,current.x*CELL+c*CELL,gr*CELL);
+  }
+
+  // Active piece
+  ctx.save();
+  ctx.shadowColor=GLOW[current.type];
+  ctx.shadowBlur=10*pulse;
+  for(let r=0;r<m.length;r++) for(let c=0;c<m[r].length;c++){
+    if(!m[r][c]) continue;
+    const pr=current.y+r; if(pr<0) continue;
+    drawCell(current.type,(current.x+c)*CELL,pr*CELL);
+  }
+  ctx.restore();
+}
+
+// ── Mini-piece drawing (hold / next) ──────────────────────────────────────────
+function drawMini(c,cx,cy,type,scale=0.5){
+  if(!type) return;
+  const m=PIECES[type][0];
+  let rMin=m.length,rMax=0,cMin=m[0].length,cMax=0;
+  for(let r=0;r<m.length;r++) for(let cc=0;cc<m[r].length;cc++){
+    if(m[r][cc]){rMin=Math.min(rMin,r);rMax=Math.max(rMax,r);cMin=Math.min(cMin,cc);cMax=Math.max(cMax,cc);}
+  }
+  const pw=(cMax-cMin+1)*CELL*scale, ph=(rMax-rMin+1)*CELL*scale;
+  const ox=cx-pw/2, oy=cy-ph/2;
+  const s=CELL*scale;
+  c.save();
+  c.shadowColor=GLOW[type]; c.shadowBlur=8*scale;
+  for(let r=rMin;r<=rMax;r++) for(let cc=cMin;cc<=cMax;cc++){
+    if(!m[r][cc]) continue;
+    const px=ox+(cc-cMin)*s, py=oy+(r-rMin)*s;
+    c.fillStyle=COLOR[type];
+    c.fillRect(px,py,s-1,s-1);
+    c.fillStyle='rgba(255,255,255,0.28)';
+    c.fillRect(px,py,s-1,2*scale);
+    c.fillRect(px,py,2*scale,s-1);
+    c.fillStyle='rgba(0,0,0,0.32)';
+    c.fillRect(px,py+s-1-2*scale,s-1,2*scale);
+  }
+  c.restore();
+}
+
+function drawHold(){
+  hCtx.clearRect(0,0,hCanvas.width,hCanvas.height);
+  if(held) drawMini(hCtx,hCanvas.width/2,hCanvas.height/2,held,0.52);
+}
+
+function drawNext(){
+  nCtx.clearRect(0,0,nCanvas.width,nCanvas.height);
+  const sh=nCanvas.height/3;
+  next3.forEach((t,i)=>drawMini(nCtx,nCanvas.width/2,sh*i+sh/2,t,0.52));
+}
+
+function drawParticles(){
+  pCtx.clearRect(0,0,W,H);
+  for(const p of particles){
+    pCtx.save();
+    pCtx.globalAlpha=p.life;
+    pCtx.shadowColor=p.color;
+    pCtx.shadowBlur=5;
+    pCtx.fillStyle=p.color;
+    pCtx.fillRect(p.x-p.sz/2,p.y-p.sz/2,p.sz,p.sz);
+    pCtx.restore();
+  }
+}
+
+// ── Main loop ─────────────────────────────────────────────────────────────────
+let lastT=0;
+function loop(ts){
+  const dt=Math.min(ts-lastT,50);
+  lastT=ts;
+  glowT+=0.08;
+
+  if(state==='playing'){
+    if(lockFlashT>0) lockFlashT--;
+    dropTimer+=dt;
+    if(dropTimer>=dropInterval){
+      dropTimer=0;
+      if(fits(current,0,1)) current.y++;
+      else lock();
+    }
+  }
+
+  if(state==='clearing'){
+    flashTimer+=dt;
+    if(flashTimer<300) flashPhase=Math.floor(flashTimer/50);
+    else if(flashTimer<500) flashPhase=6+Math.floor((flashTimer-300)/20);
+    else clearLines();
+  }
+
+  // Particles
+  for(const p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=0.14;p.life-=0.024;}
+  particles=particles.filter(p=>p.life>0);
+
+  drawBoard();
+  if(state==='playing'||state==='clearing') drawCurrent();
+  drawParticles();
+
+  raf=requestAnimationFrame(loop);
+}
+
+// ── Input ─────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key===' '){
+    e.preventDefault();
+    if(state==='start'||state==='over') initGame();
+    else if(state==='playing') hardDrop();
+    return;
+  }
+  if(e.key==='Escape'){
+    if(state==='playing'){state='paused';showOverlay('paused');}
+    else if(state==='paused'){state='playing';overlay.style.display='none';}
+    return;
+  }
+  if(state!=='playing') return;
+  switch(e.key){
+    case 'ArrowLeft': e.preventDefault(); if(fits(current,-1,0)) current.x--; break;
+    case 'ArrowRight':e.preventDefault(); if(fits(current,1,0))  current.x++; break;
+    case 'ArrowDown': e.preventDefault(); softDrop(); break;
+    case 'ArrowUp': case 'z': case 'Z': rotate('cw'); break;
+    case 'x': case 'X': rotate('ccw'); break;
+    case 'c': case 'C': doHold(); break;
+  }
+  updateUI();
+});
+
+// Mobile
+function mbind(id,fn){
+  const el=document.getElementById(id);
+  ['touchstart','mousedown'].forEach(ev=>el.addEventListener(ev,e=>{e.preventDefault();fn();},{passive:false}));
+}
+mbind('mb-left',  ()=>{if(state==='playing'&&fits(current,-1,0)) current.x--;});
+mbind('mb-right', ()=>{if(state==='playing'&&fits(current,1,0))  current.x++;});
+mbind('mb-down',  ()=>softDrop());
+mbind('mb-rotcw', ()=>rotate('cw'));
+mbind('mb-drop',  ()=>hardDrop());
+mbind('mb-hold',  ()=>doHold());
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+board=emptyBoard();
+updateUI();
+raf=requestAnimationFrame(loop);
+</script>
+</body>
+</html>

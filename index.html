@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎮 My Game Projects</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Boogaloo&family=Quicksand:wght@400;600;700&display=swap');
+
+  :root {
+    --bg:        #0a0f1e;
+    --surface:   #111827;
+    --border:    #1e2d45;
+    --accent1:   #00e5ff;
+    --accent2:   #ffd600;
+    --accent3:   #ff6f00;
+    --text:      #e0e8f0;
+    --muted:     #4a6080;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Quicksand', sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* ── Animated starfield bg ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 25%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 72% 80%, rgba(255,255,255,0.35) 0%, transparent 100%),
+      radial-gradient(1px 1px at 88% 42%, rgba(255,255,255,0.45) 0%, transparent 100%),
+      radial-gradient(1px 1px at 20% 88%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 65% 55%, rgba(255,255,255,0.25) 0%, transparent 100%),
+      radial-gradient(1px 1px at 42% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 93% 70%, rgba(255,255,255,0.35) 0%, transparent 100%),
+      radial-gradient(1px 1px at 5%  50%, rgba(255,255,255,0.4) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glowing orbs */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 600px 400px at 15% 20%, rgba(0,229,255,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 500px 350px at 85% 75%, rgba(255,214,0,0.05) 0%, transparent 70%),
+      radial-gradient(ellipse 400px 300px at 50% 100%, rgba(255,111,0,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 60px 20px 30px;
+  }
+
+  .logo-emoji {
+    font-size: 4rem;
+    display: block;
+    animation: float 3s ease-in-out infinite;
+    margin-bottom: 10px;
+  }
+
+  header h1 {
+    font-family: 'Boogaloo', cursive;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+    line-height: 1.1;
+  }
+
+  header p {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .divider {
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    margin: 18px auto 0;
+    border-radius: 2px;
+  }
+
+  /* ── Grid ── */
+  .grid {
+    position: relative;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 0 24px;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s ease, border-color 0.25s ease;
+    animation: fadeUp 0.5s ease both;
+    position: relative;
+  }
+
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.12s; }
+  .card:nth-child(3) { animation-delay: 0.19s; }
+  .card:nth-child(4) { animation-delay: 0.26s; }
+
+  .card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px var(--card-accent, var(--accent1));
+    border-color: var(--card-accent, var(--accent1));
+  }
+
+  .card-banner {
+    height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--card-bg, linear-gradient(135deg, #0d3a6b, #1565c0));
+  }
+
+  .card-banner .emoji {
+    position: relative;
+    z-index: 1;
+    animation: float 2.8s ease-in-out infinite;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+  }
+
+  /* Decorative dots on banner */
+  .card-banner .dots {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+
+  .card-body {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .card-tag {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--card-accent, var(--accent1));
+  }
+
+  .card-title {
+    font-family: 'Boogaloo', cursive;
+    font-size: 1.5rem;
+    color: #fff;
+    letter-spacing: 1px;
+  }
+
+  .card-desc {
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.6;
+    flex: 1;
+  }
+
+  .card-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: var(--border);
+    color: var(--muted);
+  }
+
+  .play-btn {
+    font-family: 'Boogaloo', cursive;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    color: var(--bg);
+    background: var(--card-accent, var(--accent1));
+    padding: 6px 16px;
+    border-radius: 20px;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+  }
+
+  .play-btn:hover { opacity: 0.85; }
+
+  /* ── Coming soon card ── */
+  .card.coming-soon {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .card.coming-soon .card-banner::after {
+    content: 'COMING SOON';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Boogaloo', cursive;
+    font-size: 1.2rem;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.6);
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(2px);
+  }
+
+  /* ── Footer ── */
+  footer {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 30px 20px 50px;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  footer span { color: var(--accent2); }
+
+  /* ── How to use banner ── */
+  .how-to {
+    position: relative;
+    z-index: 10;
+    max-width: 700px;
+    margin: 0 auto 10px;
+    padding: 0 24px;
+  }
+
+  .how-to-box {
+    background: rgba(0,229,255,0.05);
+    border: 1px solid rgba(0,229,255,0.15);
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.7;
+    text-align: center;
+  }
+
+  .how-to-box strong { color: var(--accent1); }
+
+  /* ── Animations ── */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-10px); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo-emoji">🎮</span>
+  <h1>My Game Projects</h1>
+  <p>A collection of browser games</p>
+  <div class="divider"></div>
+</header>
+
+<div class="how-to">
+  <div class="how-to-box">
+    📁 Save all your game files <strong>in the same folder</strong> as this index.html.<br>
+    Click any card below to launch that game instantly in your browser.
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- Piggy Splash -->
+  <a class="card" href="piggy_splash.html" style="--card-accent:#00e5ff; --card-bg: linear-gradient(135deg, #0d3a6b 0%, #1565c0 60%, #0097a7 100%);">
+    <div class="card-banner">
+      <div class="dots"></div>
+      <span class="emoji">🐷</span>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">🌊 Arcade</div>
+      <div class="card-title">Piggy Splash</div>
+      <div class="card-desc">Help your pig cross raging rivers, dodge speeding boats and sneaky crocodiles, ride logs, and collect coins to unlock powerups. Survive the storm!</div>
+    </div>
+    <div class="card-footer">
+      <div class="card-chips">
+        <span class="chip">Dodge</span>
+        <span class="chip">Powerups</span>
+        <span class="chip">Combos</span>
+      </div>
+      <span class="play-btn">▶ Play</span>
+    </div>
+  </a>
+
+  <!-- Neon Drop -->
+  <a class="card" href="neon_drop.html" style="--card-accent:#00f0f0; --card-bg: linear-gradient(135deg, #000010 0%, #0a003a 55%, #001a2e 100%);">
+    <div class="card-banner">
+      <div class="dots"></div>
+      <span class="emoji">🟦</span>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">🎮 Puzzle</div>
+      <div class="card-title">Neon Drop</div>
+      <div class="card-desc">Stack glowing tetrominoes in this neon-drenched arcade Tetris clone. Master SRS rotation, hold pieces, and aim for Tetris clears on a retro CRT screen.</div>
+    </div>
+    <div class="card-footer">
+      <div class="card-chips">
+        <span class="chip">SRS</span>
+        <span class="chip">Hold</span>
+        <span class="chip">Ghost</span>
+      </div>
+      <span class="play-btn">▶ Play</span>
+    </div>
+  </a>
+
+  <!-- Placeholder slot 3 -->
+  <div class="card coming-soon" style="--card-accent:#ff6f00; --card-bg: linear-gradient(135deg, #1a0030, #6a1b9a);">
+    <div class="card-banner">
+      <div class="dots"></div>
+      <span class="emoji">🚀</span>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">🔒 Action</div>
+      <div class="card-title">Next Game</div>
+      <div class="card-desc">Another adventure awaits. Keep building — every new .html file you add can be linked right here.</div>
+    </div>
+    <div class="card-footer">
+      <div class="card-chips">
+        <span class="chip">TBD</span>
+      </div>
+      <span class="play-btn">▶ Play</span>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Built with <span>♥</span> — add more games anytime by editing this file
+</footer>
+
+</body>
+</html>

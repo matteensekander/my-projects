@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piggy Splash 🐷</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
+
+  :root {
+    --water: #1a7abf;
+    --water-light: #2196f3;
+    --land: #4caf50;
+    --land-dark: #388e3c;
+    --sand: #f9a825;
+    --pig-pink: #f48fb1;
+    --boat-red: #e53935;
+    --boat-yellow: #fdd835;
+    --boat-teal: #00897b;
+    --ui-bg: #0d2137;
+    --ui-accent: #ffd600;
+    --ui-text: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d1b2a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Nunito', sans-serif;
+    user-select: none;
+  }
+
+  #ui-top {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: rgba(13,33,55,0.92);
+    z-index: 100;
+    backdrop-filter: blur(4px);
+    border-bottom: 2px solid #1e3a5f;
+  }
+
+  #score-display {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: var(--ui-accent);
+    text-shadow: 0 0 10px rgba(255,214,0,0.4);
+  }
+
+  #lives-display {
+    font-size: 1.4rem;
+  }
+
+  #coins-display {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.4rem;
+    color: #ffd600;
+  }
+
+  #power-display {
+    font-size: 1rem;
+    color: #80cbc4;
+    min-width: 120px;
+    text-align: right;
+  }
+
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+    border: 3px solid #1e3a5f;
+    border-radius: 8px;
+    box-shadow: 0 0 60px rgba(33,150,243,0.2), 0 0 120px rgba(0,0,0,0.6);
+    margin-top: 56px;
+  }
+
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,20,40,0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    gap: 18px;
+  }
+
+  #overlay h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 3.5rem;
+    color: var(--ui-accent);
+    text-shadow: 0 4px 20px rgba(255,214,0,0.5);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  #overlay p {
+    font-size: 1.2rem;
+    color: #b0bec5;
+    text-align: center;
+    max-width: 340px;
+    line-height: 1.6;
+  }
+
+  #overlay .final-score {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: #fff;
+  }
+
+  #start-btn {
+    margin-top: 10px;
+    padding: 14px 48px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.6rem;
+    color: #0d1b2a;
+    background: var(--ui-accent);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #b8860b, 0 8px 20px rgba(255,214,0,0.3);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  #start-btn:hover { transform: translateY(2px); box-shadow: 0 4px 0 #b8860b, 0 4px 12px rgba(255,214,0,0.3); }
+  #start-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #b8860b; }
+
+  #powerup-bar {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 100;
+    background: rgba(13,33,55,0.85);
+    padding: 8px 16px;
+    border-radius: 40px;
+    border: 1px solid #1e3a5f;
+  }
+
+  .pup-slot {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #1e3a5f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    cursor: pointer;
+    border: 2px solid #2d4f7c;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .pup-slot.active { border-color: var(--ui-accent); box-shadow: 0 0 10px rgba(255,214,0,0.4); }
+  .pup-slot.inactive { opacity: 0.4; cursor: default; }
+
+  .pup-slot .kbd {
+    position: absolute;
+    bottom: -18px;
+    font-size: 0.65rem;
+    color: #546e7a;
+    font-family: monospace;
+  }
+
+  #instructions {
+    position: fixed;
+    top: 60px;
+    right: 10px;
+    background: rgba(13,33,55,0.85);
+    border: 1px solid #1e3a5f;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.75rem;
+    color: #78909c;
+    line-height: 1.8;
+    z-index: 100;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+  }
+
+  #combo-display {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem;
+    color: #ff6f00;
+    text-shadow: 0 0 10px rgba(255,111,0,0.5);
+    pointer-events: none;
+    z-index: 150;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  #combo-display.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="ui-top">
+  <div id="score-display">🏆 0</div>
+  <div id="coins-display">🪙 0</div>
+  <div id="lives-display">❤️❤️❤️</div>
+  <div id="power-display">No powerup</div>
+</div>
+
+<div id="combo-display"></div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="powerup-bar">
+  <div class="pup-slot inactive" id="slot-shield" title="Shield (Z)">🛡️<span class="kbd">Z</span></div>
+  <div class="pup-slot inactive" id="slot-slow" title="Slow Time (X)">⏱️<span class="kbd">X</span></div>
+  <div class="pup-slot inactive" id="slot-jump" title="Super Jump (C)">🚀<span class="kbd">C</span></div>
+</div>
+
+<div id="instructions">
+  ↑↓←→ or WASD — Move<br>
+  Z — Use Shield 🛡️<br>
+  X — Slow Time ⏱️<br>
+  C — Super Jump 🚀<br>
+  🪙 Collect coins for powerups<br>
+  🐊 Avoid crocodiles!<br>
+  🌩️ Watch for storms!
+</div>
+
+<div id="overlay">
+  <h1>🐷 Piggy Splash!</h1>
+  <p>Help the pig cross the river! Dodge boats, ride logs, collect coins, and survive the stormy seas!</p>
+  <button id="start-btn">Start Game!</button>
+  <p style="font-size:0.9rem;color:#546e7a;">Arrows / WASD to move</p>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// ─── Canvas size ───────────────────────────────────────────────────────────────
+const TILE = 52;
+const COLS = 11;
+const VISIBLE_ROWS = 11;
+canvas.width  = TILE * COLS;
+canvas.height = TILE * VISIBLE_ROWS;
+
+// ─── Game state ────────────────────────────────────────────────────────────────
+let state, pig, rows, rowOffset, score, highScore, coins, lives, combo, comboTimer;
+let powerups, activePower, powerTimer;
+let particles, floatTexts, stormTimer, stormActive;
+let keys = {};
+let moveQueue = [];
+let animatingMove = false;
+let gameRunning = false;
+let animFrame;
+
+const scoreEl   = document.getElementById('score-display');
+const coinsEl   = document.getElementById('coins-display');
+const livesEl   = document.getElementById('lives-display');
+const powerEl   = document.getElementById('power-display');
+const comboEl   = document.getElementById('combo-display');
+const overlay   = document.getElementById('overlay');
+const startBtn  = document.getElementById('start-btn');
+
+// ─── Row types ─────────────────────────────────────────────────────────────────
+const ROW = {
+  SAFE:    'safe',
+  WATER:   'water',
+  FAST:    'fast',    // fast water
+  LOG:     'log',
+  CURRENT: 'current', // dangerous current
+};
+
+// ─── Colours & theme ───────────────────────────────────────────────────────────
+const C = {
+  water:      '#1565c0',
+  waterLight: '#1e88e5',
+  waterFoam:  '#90caf9',
+  waterDark:  '#0d3a6b',
+  land:       '#388e3c',
+  landLight:  '#4caf50',
+  landEdge:   '#2e7d32',
+  sand:       '#f9a825',
+  sandLight:  '#ffc107',
+  pig:        '#f06292',
+  pigDark:    '#e91e63',
+  pigSnout:   '#f8bbd0',
+  boatRed:    '#c62828',
+  boatYellow: '#f9a825',
+  boatTeal:   '#00695c',
+  boatPurple: '#6a1b9a',
+  log:        '#795548',
+  logLight:   '#a1887f',
+  coin:       '#ffd600',
+  coinShadow: '#ff8f00',
+  croc:       '#2e7d32',
+  foam:       'rgba(255,255,255,0.6)',
+};
+
+// ─── Init ──────────────────────────────────────────────────────────────────────
+function initGame() {
+  score      = 0;
+  highScore  = highScore || 0;
+  coins      = 0;
+  lives      = 3;
+  combo      = 0;
+  comboTimer = 0;
+  stormTimer = 0;
+  stormActive= false;
+  powerups   = { shield: 0, slow: 0, jump: 0 };
+  activePower= null;
+  powerTimer = 0;
+  particles  = [];
+  floatTexts = [];
+  rowOffset  = 0;
+  moveQueue  = [];
+  animatingMove = false;
+
+  // pig starts in middle of bottom safe row
+  pig = {
+    col: 5, row: 0,
+    drawX: 5 * TILE, drawY: (VISIBLE_ROWS - 1) * TILE,
+    targetX: 5 * TILE, targetY: (VISIBLE_ROWS - 1) * TILE,
+    animT: 1, moving: false,
+    onLog: null, invincible: 0, squished: false,
+    jumpAnim: 0
+  };
+
+  rows = [];
+  // Generate initial rows (bottom-up)
+  rows.push(makeSafeRow(0));
+  for (let r = 1; r < 30; r++) rows.push(makeRow(r));
+
+  updateUI();
+  gameRunning = true;
+  overlay.style.display = 'none';
+
+  cancelAnimationFrame(animFrame);
+  lastTime = null;
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+// ─── Row generation ────────────────────────────────────────────────────────────
+function makeSafeRow(idx) {
+  const row = { type: ROW.SAFE, idx, boats: [], logs: [], coins: [], crocs: [] };
+  // occasional coin on safe land
+  if (idx > 0 && Math.random() < 0.3) {
+    row.coins.push({ col: Math.floor(Math.random() * COLS), collected: false });
+  }
+  return row;
+}
+
+function makeRow(idx) {
+  const r = Math.random();
+  let type;
+  if (idx < 4) type = r < 0.4 ? ROW.SAFE : ROW.WATER;
+  else {
+    if (r < 0.25) type = ROW.SAFE;
+    else if (r < 0.5) type = ROW.WATER;
+    else if (r < 0.68) type = ROW.LOG;
+    else if (r < 0.82) type = ROW.FAST;
+    else type = ROW.CURRENT;
+  }
+
+  const row = { type, idx, boats: [], logs: [], coins: [], crocs: [], waveOffset: Math.random() * Math.PI * 2 };
+
+  if (type === ROW.WATER || type === ROW.FAST || type === ROW.CURRENT) {
+    const dir     = Math.random() < 0.5 ? 1 : -1;
+    const speed   = type === ROW.FAST   ? (1.5 + Math.random() * 2) * dir
+                  : type === ROW.CURRENT ? (0.8 + Math.random() * 1.2) * dir
+                  : (0.6 + Math.random() * 1.4) * dir;
+    const count   = 1 + Math.floor(Math.random() * 3);
+    const gap     = TILE * (2.5 + Math.random() * 3);
+    const boatColors = [C.boatRed, C.boatYellow, C.boatTeal, C.boatPurple];
+    const color   = boatColors[Math.floor(Math.random() * boatColors.length)];
+    const size    = 1 + Math.floor(Math.random() * 2); // 1 or 2 width in tiles
+
+    for (let i = 0; i < count; i++) {
+      row.boats.push({
+        x: (Math.random() * COLS + i * (gap / TILE)) * TILE,
+        speed, color, size,
+        wave: Math.random() * Math.PI * 2,
+      });
+    }
+
+    // Crocodile on current rows
+    if (type === ROW.CURRENT && Math.random() < 0.5) {
+      row.crocs.push({
+        x: Math.random() * COLS * TILE,
+        speed: speed * 0.7,
+        wave: 0,
+      });
+    }
+  }
+
+  if (type === ROW.LOG) {
+    const dir   = Math.random() < 0.5 ? 1 : -1;
+    const speed = (0.4 + Math.random() * 0.8) * dir;
+    const count = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const len = 2 + Math.floor(Math.random() * 3);
+      row.logs.push({
+        x: (Math.random() * COLS + i * 5) * TILE,
+        speed, len,
+        wave: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
+  // Coins on water/log rows
+  if ((type === ROW.WATER || type === ROW.LOG) && Math.random() < 0.25) {
+    row.coins.push({ col: Math.floor(Math.random() * COLS), collected: false, float: 0 });
+  }
+
+  return row;
+}
+
+// ─── UI ────────────────────────────────────────────────────────────────────────
+function updateUI() {
+  scoreEl.textContent  = '🏆 ' + score;
+  coinsEl.textContent  = '🪙 ' + coins;
+  let h = '';
+  for (let i = 0; i < lives; i++) h += '❤️';
+  for (let i = lives; i < 3; i++) h += '🖤';
+  livesEl.textContent = h;
+
+  ['shield','slow','jump'].forEach(k => {
+    const slot = document.getElementById('slot-' + k);
+    if (powerups[k] > 0) {
+      slot.classList.add('active'); slot.classList.remove('inactive');
+    } else {
+      slot.classList.remove('active'); slot.classList.add('inactive');
+    }
+  });
+
+  if (activePower) {
+    const names = { shield: '🛡️ Shield', slow: '⏱️ Slow Time', jump: '🚀 Super Jump' };
+    powerEl.textContent = names[activePower] + ' ' + Math.ceil(powerTimer / 60) + 's';
+  } else {
+    powerEl.textContent = 'No powerup';
+  }
+}
+
+// ─── Powerup activation ────────────────────────────────────────────────────────
+function usePowerup(type) {
+  if (!gameRunning || powerups[type] <= 0 || activePower) return;
+  powerups[type]--;
+  activePower = type;
+  powerTimer  = type === 'slow' ? 300 : type === 'shield' ? 240 : 180;
+  spawnParticles(pig.drawX + TILE/2, pig.drawY + TILE/2, type === 'shield' ? '#80deea' : type === 'slow' ? '#ce93d8' : '#fff59d', 20);
+  updateUI();
+}
+
+// ─── Particles ─────────────────────────────────────────────────────────────────
+function spawnParticles(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 1 + Math.random() * 3;
+    particles.push({ x, y, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd - 2, life: 1, color });
+  }
+}
+
+function spawnFloatText(x, y, text, color='#ffd600') {
+  floatTexts.push({ x, y, text, color, life: 1 });
+}
+
+// ─── Main loop ─────────────────────────────────────────────────────────────────
+let lastTime = null;
+function gameLoop(ts) {
+  const dt = lastTime ? Math.min((ts - lastTime) / 16.67, 3) : 1;
+  lastTime = ts;
+
+  if (!gameRunning) return;
+  update(dt);
+  draw();
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+// ─── Update ────────────────────────────────────────────────────────────────────
+function update(dt) {
+  const slow = activePower === 'slow' ? 0.35 : 1;
+
+  // Power timer
+  if (activePower) {
+    powerTimer -= dt;
+    if (powerTimer <= 0) { activePower = null; }
+  }
+
+  // Storm
+  stormTimer -= dt;
+  if (stormTimer <= 0) {
+    stormActive = !stormActive;
+    stormTimer  = stormActive ? 180 + Math.random()*120 : 300 + Math.random()*300;
+    if (stormActive) spawnFloatText(canvas.width/2, canvas.height/2, '⛈️ STORM!', '#80deea');
+  }
+
+  // Combo decay
+  if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) { combo = 0; comboEl.classList.remove('show'); } }
+
+  // Invincibility
+  if (pig.invincible > 0) pig.invincible -= dt;
+
+  // Process movement
+  if (!animatingMove && moveQueue.length > 0) {
+    const dir = moveQueue.shift();
+    doMove(dir);
+  }
+
+  // Animate pig movement
+  if (animatingMove) {
+    pig.animT = Math.min(pig.animT + dt * 0.25, 1);
+    pig.jumpAnim = Math.sin(pig.animT * Math.PI) * (activePower === 'jump' ? 28 : 14);
+    pig.drawX = lerp(pig.drawX, pig.targetX, pig.animT);
+    pig.drawY = lerp(pig.drawY, pig.targetY, pig.animT);
+    if (pig.animT >= 1) {
+      pig.drawX = pig.targetX;
+      pig.drawY = pig.targetY;
+      animatingMove = false;
+      pig.jumpAnim = 0;
+      checkCollect();
+    }
+  }
+
+  // Move boats/logs
+  for (const row of rows) {
+    const rowDt = dt * slow;
+    for (const b of row.boats) {
+      b.x += b.speed * rowDt;
+      b.wave += 0.05 * rowDt;
+      if (b.speed > 0 && b.x > canvas.width + TILE * 4) b.x = -TILE * (b.size + 1) * TILE;
+      if (b.speed < 0 && b.x < -TILE * (b.size + 1) * TILE) b.x = canvas.width + TILE * 4;
+    }
+    for (const c of row.crocs) {
+      c.x += c.speed * rowDt;
+      c.wave += 0.03 * rowDt;
+      if (c.speed > 0 && c.x > canvas.width + TILE * 3) c.x = -TILE * 3;
+      if (c.speed < 0 && c.x < -TILE * 3) c.x = canvas.width + TILE * 3;
+    }
+    for (const l of row.logs) {
+      l.x += l.speed * rowDt;
+      l.wave += 0.04 * rowDt;
+      if (l.speed > 0 && l.x > canvas.width + l.len * TILE * 2) l.x = -(l.len * TILE + TILE);
+      if (l.speed < 0 && l.x < -(l.len * TILE + TILE)) l.x = canvas.width + l.len * TILE * 2;
+    }
+    for (const coin of row.coins) { if (coin.float !== undefined) coin.float = (coin.float||0) + 0.07 * rowDt; }
+  }
+
+  // Carry pig on log
+  if (pig.onLog) {
+    pig.drawX  += pig.onLog.speed * slow * dt;
+    pig.targetX = pig.drawX;
+    pig.col      = Math.round(pig.drawX / TILE);
+  }
+
+  // Storm: extra boats appear
+  if (stormActive && Math.random() < 0.003 * dt) {
+    const ri = Math.floor(Math.random() * rows.length);
+    const row = rows[ri];
+    if (row.type === ROW.WATER || row.type === ROW.FAST) {
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      row.boats.push({ x: dir > 0 ? -TILE*2 : canvas.width+TILE*2, speed: (2+Math.random()*2)*dir, color: C.boatRed, size: 1, wave: 0 });
+    }
+  }
+
+  // Particles
+  for (const p of particles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= 0.025 * dt;
+  }
+  particles = particles.filter(p => p.life > 0);
+
+  // Float texts
+  for (const f of floatTexts) { f.y -= 0.8 * dt; f.life -= 0.018 * dt; }
+  floatTexts = floatTexts.filter(f => f.life > 0);
+
+  // Collision detection (only when not animating and not invincible)
+  if (!animatingMove && pig.invincible <= 0 && activePower !== 'shield') {
+    checkDanger();
+  }
+
+  updateUI();
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function doMove(dir) {
+  let nc = pig.col;
+  let nr = pig.row;
+
+  if (dir === 'up')    nr++;
+  if (dir === 'down')  nr--;
+  if (dir === 'left')  nc--;
+  if (dir === 'right') nc++;
+
+  // Clamp horizontally (allow super jump to go 2 cols)
+  nc = Math.max(0, Math.min(COLS - 1, nc));
+
+  // Don't move down below start row
+  if (nr < 0) return;
+
+  pig.col = nc;
+  pig.row = nr;
+  pig.targetX = nc * TILE;
+  pig.targetY = (VISIBLE_ROWS - 1 - (nr - rowOffset)) * TILE;
+  pig.animT   = 0;
+  animatingMove = true;
+  pig.onLog = null;
+
+  // Score for moving forward
+  if (dir === 'up') {
+    const newScore = pig.row;
+    if (newScore > score) {
+      combo++;
+      comboTimer = 90;
+      const gained = combo >= 5 ? 3 : combo >= 3 ? 2 : 1;
+      score = newScore;
+      if (combo >= 3) {
+        comboEl.textContent = '🔥 x' + combo + ' COMBO! +' + gained;
+        comboEl.classList.add('show');
+      }
+      if (score > highScore) highScore = score;
+    }
+  }
+
+  // Scroll world if pig near top
+  const screenRow = pig.row - rowOffset;
+  if (screenRow > VISIBLE_ROWS - 3) {
+    rowOffset++;
+    // generate more rows
+    while (rows.length <= pig.row + 10) {
+      const newIdx = rows.length;
+      rows.push(newIdx % 8 === 0 ? makeSafeRow(newIdx) : makeRow(newIdx));
+    }
+  }
+}
+
+function checkCollect() {
+  const row = rows[pig.row];
+  if (!row) return;
+
+  // Log riding
+  pig.onLog = null;
+  for (const l of row.logs) {
+    const lx = l.x, rx = l.x + l.len * TILE;
+    const px = pig.col * TILE + TILE/2;
+    if (px >= lx && px <= rx) {
+      pig.onLog = l;
+      break;
+    }
+  }
+
+  // If on water/current row with no log – danger
+  if ((row.type === ROW.WATER || row.type === ROW.FAST || row.type === ROW.CURRENT) && !pig.onLog) {
+    if (activePower !== 'shield') takeDamage('splash');
+  }
+
+  // Coins
+  for (const coin of row.coins) {
+    if (!coin.collected && coin.col === pig.col) {
+      coin.collected = true;
+      coins++;
+      spawnParticles(pig.drawX + TILE/2, pig.drawY + TILE/2, C.coin, 12);
+      spawnFloatText(pig.drawX + TILE/2, pig.drawY, '+🪙', '#ffd600');
+      // every 5 coins: random powerup
+      if (coins % 5 === 0) {
+        const types = ['shield','slow','jump'];
+        const t = types[Math.floor(Math.random() * types.length)];
+        powerups[t]++;
+        const names = { shield:'🛡️', slow:'⏱️', jump:'🚀' };
+        spawnFloatText(pig.drawX + TILE/2, pig.drawY - 20, names[t] + ' Powerup!', '#ff8f00');
+      }
+    }
+  }
+}
+
+function checkDanger() {
+  const row = rows[pig.row];
+  if (!row) return;
+
+  const px = pig.col * TILE + TILE/2;
+  const py = pig.drawY + TILE/2;
+
+  // Boats
+  for (const b of row.boats) {
+    const bLeft  = b.x;
+    const bRight = b.x + b.size * TILE;
+    const overlap = px > bLeft + 4 && px < bRight - 4;
+    if (overlap) { takeDamage('boat'); return; }
+  }
+
+  // Crocs
+  for (const c of row.crocs) {
+    const cl = c.x, cr = c.x + TILE * 2;
+    if (px > cl + 4 && px < cr - 4) { takeDamage('croc'); return; }
+  }
+
+  // Water with no log
+  if ((row.type === ROW.WATER || row.type === ROW.FAST || row.type === ROW.CURRENT) && !pig.onLog) {
+    // Already handled in checkCollect; this handles continuous
+  }
+
+  // Out of screen left/right
+  if (pig.col < 0 || pig.col >= COLS) takeDamage('oob');
+}
+
+function takeDamage(reason) {
+  if (pig.invincible > 0 || activePower === 'shield') return;
+  lives--;
+  pig.invincible = 120;
+  combo = 0;
+  comboEl.classList.remove('show');
+  spawnParticles(pig.drawX + TILE/2, pig.drawY + TILE/2, '#ef9a9a', 20);
+  const msgs = { boat:'💥 BOAT!', croc:'🐊 CROC!', splash:'💦 SPLASH!', oob:'🌊 OUT!' };
+  spawnFloatText(pig.drawX + TILE/2, pig.drawY, msgs[reason] || '💥', '#ef5350');
+
+  if (lives <= 0) gameOver();
+  updateUI();
+}
+
+function gameOver() {
+  gameRunning = false;
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `
+    <h1>Game Over! 🐷</h1>
+    <div class="final-score">Score: ${score}</div>
+    <div class="final-score" style="font-size:1.2rem;color:#ffd600">High Score: ${highScore}</div>
+    <p>You collected ${coins} coins and made it ${score} steps!</p>
+    <button id="start-btn" onclick="initGame()">Play Again!</button>
+  `;
+}
+
+// ─── Drawing ───────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const t = performance.now() / 1000;
+
+  // Draw rows bottom to top
+  for (let screenR = 0; screenR < VISIBLE_ROWS; screenR++) {
+    const worldR = rowOffset + (VISIBLE_ROWS - 1 - screenR);
+    const row = rows[worldR];
+    const y   = screenR * TILE;
+    if (!row) continue;
+    drawRow(row, y, t);
+  }
+
+  // Draw coins on top
+  for (let screenR = 0; screenR < VISIBLE_ROWS; screenR++) {
+    const worldR = rowOffset + (VISIBLE_ROWS - 1 - screenR);
+    const row = rows[worldR];
+    const y   = screenR * TILE;
+    if (!row) continue;
+    for (const coin of row.coins) {
+      if (!coin.collected) {
+        const cf = coin.float || 0;
+        const cy = y + TILE/2 - 6 + Math.sin(cf) * 4;
+        drawCoin(coin.col * TILE + TILE/2, cy);
+      }
+    }
+  }
+
+  // Draw pig
+  drawPig(t);
+
+  // Storm overlay
+  if (stormActive) {
+    ctx.fillStyle = `rgba(30,80,140,${0.12 + 0.04 * Math.sin(t * 3)})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // lightning flicker
+    if (Math.random() < 0.01) {
+      ctx.fillStyle = 'rgba(200,230,255,0.15)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  // Shield glow
+  if (activePower === 'shield') {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(pig.drawX + TILE/2, pig.drawY + TILE/2 - pig.jumpAnim, TILE * 0.75, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(128,222,234,${0.5 + 0.3*Math.sin(t*4)})`;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Particles
+  for (const p of particles) {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Float texts
+  for (const f of floatTexts) {
+    ctx.save();
+    ctx.globalAlpha = f.life;
+    ctx.fillStyle = f.color;
+    ctx.font = 'bold 16px Fredoka One, cursive';
+    ctx.textAlign = 'center';
+    ctx.fillText(f.text, f.x, f.y);
+    ctx.restore();
+  }
+
+  // Invincibility flash
+  if (pig.invincible > 0 && Math.floor(pig.invincible / 6) % 2 === 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#ef5350';
+    ctx.fillRect(pig.drawX, pig.drawY - pig.jumpAnim, TILE, TILE);
+    ctx.restore();
+  }
+}
+
+function drawRow(row, y, t) {
+  if (row.type === ROW.SAFE) {
+    // Grassy land
+    ctx.fillStyle = C.land;
+    ctx.fillRect(0, y, canvas.width, TILE);
+    // Grass texture
+    ctx.fillStyle = C.landLight;
+    for (let i = 0; i < COLS; i++) {
+      ctx.fillRect(i * TILE + 6, y + 4, TILE - 12, 8);
+      ctx.beginPath();
+      ctx.arc(i * TILE + TILE/2, y + 8, 5, 0, Math.PI);
+      ctx.fill();
+    }
+    ctx.fillStyle = C.landEdge;
+    ctx.fillRect(0, y, canvas.width, 3);
+    ctx.fillRect(0, y + TILE - 3, canvas.width, 3);
+    return;
+  }
+
+  // Water rows
+  const wc = row.type === ROW.FAST ? C.waterDark : row.type === ROW.CURRENT ? '#0a2744' : C.water;
+  ctx.fillStyle = wc;
+  ctx.fillRect(0, y, canvas.width, TILE);
+
+  // Wave animation
+  ctx.save();
+  ctx.strokeStyle = C.waterFoam;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.3;
+  for (let w = 0; w < 3; w++) {
+    ctx.beginPath();
+    const woff = (row.waveOffset || 0) + w * 0.9;
+    for (let x = 0; x <= canvas.width; x += 4) {
+      const wy = y + TILE/3 + w * 10 + Math.sin((x / 30) + t * 1.5 + woff) * 3;
+      if (x === 0) ctx.moveTo(x, wy); else ctx.lineTo(x, wy);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Danger indicator for fast/current rows
+  if (row.type === ROW.FAST || row.type === ROW.CURRENT) {
+    ctx.save();
+    ctx.fillStyle = `rgba(255,0,0,${0.06 + 0.03 * Math.sin(t*2)})`;
+    ctx.fillRect(0, y, canvas.width, TILE);
+    ctx.restore();
+  }
+
+  // Logs
+  for (const l of row.logs) {
+    const lx = l.x;
+    const ly = y + 6 + Math.sin(l.wave) * 2;
+    const lw = l.len * TILE;
+    // Log body
+    ctx.save();
+    ctx.fillStyle = C.log;
+    roundRect(ctx, lx, ly, lw, TILE - 12, 8);
+    ctx.fill();
+    // Wood grain
+    ctx.fillStyle = C.logLight;
+    for (let s = 1; s < l.len; s++) {
+      ctx.fillRect(lx + s * TILE - 3, ly + 4, 6, TILE - 20);
+    }
+    // Log ends
+    ctx.beginPath();
+    ctx.ellipse(lx + 8, ly + (TILE-12)/2, 8, (TILE-12)/2, 0, 0, Math.PI*2);
+    ctx.fillStyle = C.logLight;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(lx + lw - 8, ly + (TILE-12)/2, 8, (TILE-12)/2, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Boats
+  for (const b of row.boats) {
+    drawBoat(b, y, t);
+  }
+
+  // Crocs
+  for (const c of row.crocs) {
+    drawCroc(c, y, t);
+  }
+}
+
+function drawBoat(b, y, t) {
+  const bx = b.x;
+  const by = y + TILE/2 + Math.sin(b.wave) * 3;
+  const bw = b.size * TILE;
+  const bh = TILE * 0.55;
+  const dir = b.speed > 0 ? 1 : -1;
+
+  ctx.save();
+
+  // Hull
+  ctx.fillStyle = b.color;
+  ctx.beginPath();
+  ctx.moveTo(bx, by);
+  ctx.lineTo(bx + bw, by);
+  ctx.lineTo(bx + bw - 6, by + bh);
+  ctx.lineTo(bx + 6, by + bh);
+  ctx.closePath();
+  ctx.fill();
+
+  // Cabin
+  const cabinW = bw * 0.4;
+  const cabinX = bx + bw * 0.3;
+  ctx.fillStyle = '#ffffffcc';
+  ctx.fillRect(cabinX, by - bh * 0.8, cabinW, bh * 0.8);
+  ctx.fillStyle = '#b3e5fc';
+  ctx.fillRect(cabinX + 4, by - bh * 0.7, cabinW - 8, bh * 0.5);
+
+  // Chimney / flag
+  ctx.fillStyle = '#424242';
+  ctx.fillRect(bx + bw * 0.55, by - bh * 1.2, 5, bh * 0.5);
+  // Smoke
+  ctx.fillStyle = 'rgba(200,200,200,0.5)';
+  ctx.beginPath();
+  ctx.arc(bx + bw * 0.55 + 2, by - bh * 1.3 + Math.sin(t * 2) * 2, 5, 0, Math.PI*2);
+  ctx.fill();
+
+  // Wake
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const wx = dir > 0 ? bx - 10 : bx + bw + 10;
+  ctx.moveTo(wx, by + bh * 0.5);
+  ctx.lineTo(wx - dir * 20, by + bh * 0.5 + 5);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawCroc(c, y, t) {
+  const cx = c.x;
+  const cy = y + TILE/2 + Math.sin(c.wave) * 2;
+
+  ctx.save();
+  // Body
+  ctx.fillStyle = C.croc;
+  roundRect(ctx, cx, cy - 8, TILE * 2, 16, 4);
+  ctx.fill();
+  // Eyes
+  ctx.fillStyle = '#f9a825';
+  ctx.beginPath();
+  ctx.arc(cx + TILE * 1.7, cy - 6, 5, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx + TILE * 1.85, cy - 6, 5, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(cx + TILE * 1.72, cy - 6, 2, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx + TILE * 1.87, cy - 6, 2, 0, Math.PI*2);
+  ctx.fill();
+  // Nostrils
+  ctx.fillStyle = '#1b5e20';
+  ctx.beginPath();
+  ctx.arc(cx + TILE * 0.15, cy, 3, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawCoin(x, y) {
+  ctx.save();
+  // Coin glow
+  const grad = ctx.createRadialGradient(x, y, 2, x, y, 12);
+  grad.addColorStop(0, 'rgba(255,214,0,0.6)');
+  grad.addColorStop(1, 'rgba(255,214,0,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(x, y, 12, 0, Math.PI*2);
+  ctx.fill();
+  // Coin body
+  ctx.fillStyle = C.coin;
+  ctx.beginPath();
+  ctx.arc(x, y, 9, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = C.coinShadow;
+  ctx.font = 'bold 10px Nunito';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('$', x, y);
+  ctx.restore();
+}
+
+function drawPig(t) {
+  const x = pig.drawX;
+  const y = pig.drawY - pig.jumpAnim;
+
+  ctx.save();
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(x + TILE/2, pig.drawY + TILE - 6, TILE * 0.4, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Body
+  ctx.fillStyle = pig.invincible > 0 && Math.floor(pig.invincible / 4) % 2 ? '#ef5350' : C.pig;
+  roundRect(ctx, x + 8, y + 14, TILE - 16, TILE - 18, 10);
+  ctx.fill();
+
+  // Head
+  ctx.fillStyle = C.pig;
+  ctx.beginPath();
+  ctx.arc(x + TILE/2, y + 14, TILE * 0.38, 0, Math.PI*2);
+  ctx.fill();
+
+  // Ears
+  ctx.fillStyle = C.pigDark;
+  ctx.beginPath();
+  ctx.ellipse(x + TILE/2 - 14, y + 6, 8, 10, -0.4, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(x + TILE/2 + 14, y + 6, 8, 10, 0.4, 0, Math.PI*2);
+  ctx.fill();
+
+  // Snout
+  ctx.fillStyle = C.pigSnout;
+  ctx.beginPath();
+  ctx.ellipse(x + TILE/2, y + 18, 10, 7, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Nostrils
+  ctx.fillStyle = '#e91e63';
+  ctx.beginPath();
+  ctx.arc(x + TILE/2 - 4, y + 19, 2.5, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + TILE/2 + 4, y + 19, 2.5, 0, Math.PI*2);
+  ctx.fill();
+
+  // Eyes
+  const blink = Math.sin(t * 0.5) > 0.98;
+  ctx.fillStyle = '#222';
+  if (blink) {
+    ctx.fillRect(x + TILE/2 - 9, y + 10, 7, 2);
+    ctx.fillRect(x + TILE/2 + 2, y + 10, 7, 2);
+  } else {
+    ctx.beginPath();
+    ctx.arc(x + TILE/2 - 7, y + 10, 4, 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + TILE/2 + 7, y + 10, 4, 0, Math.PI*2);
+    ctx.fill();
+    // Eye glints
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x + TILE/2 - 5, y + 8, 1.5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + TILE/2 + 9, y + 8, 1.5, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Tail (little curly on back)
+  ctx.strokeStyle = C.pigDark;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(x + TILE - 6, y + 24, 5, -0.5, Math.PI * 1.2);
+  ctx.stroke();
+
+  // Powerup aura
+  if (activePower === 'jump') {
+    ctx.strokeStyle = '#fff59d';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    ctx.arc(x + TILE/2, y + TILE/2, TILE * 0.52, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ─── Input ─────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (!gameRunning) return;
+  const map = {
+    ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right',
+    w:'up', s:'down', a:'left', d:'right',
+    W:'up', S:'down', A:'left', D:'right',
+  };
+  const dir = map[e.key];
+  if (dir && moveQueue.length < 3) {
+    e.preventDefault();
+    // Super jump goes 2 steps forward
+    if (dir === 'up' && activePower === 'jump') {
+      moveQueue.push('up', 'up');
+    } else {
+      moveQueue.push(dir);
+    }
+  }
+  if (e.key === 'z' || e.key === 'Z') usePowerup('shield');
+  if (e.key === 'x' || e.key === 'X') usePowerup('slow');
+  if (e.key === 'c' || e.key === 'C') usePowerup('jump');
+});
+
+// Touch / swipe
+let touchStart = null;
+canvas.addEventListener('touchstart', e => { touchStart = e.touches[0]; }, { passive: true });
+canvas.addEventListener('touchend', e => {
+  if (!touchStart || !gameRunning) return;
+  const dx = e.changedTouches[0].clientX - touchStart.clientX;
+  const dy = e.changedTouches[0].clientY - touchStart.clientY;
+  const ad = Math.abs(dx), av = Math.abs(dy);
+  if (ad < 10 && av < 10) return;
+  let dir;
+  if (av > ad) dir = dy < 0 ? 'up' : 'down';
+  else dir = dx > 0 ? 'right' : 'left';
+  if (moveQueue.length < 3) moveQueue.push(dir);
+  touchStart = null;
+}, { passive: true });
+
+// Powerup bar clicks
+document.getElementById('slot-shield').addEventListener('click', () => usePowerup('shield'));
+document.getElementById('slot-slow').addEventListener('click', () => usePowerup('slow'));
+document.getElementById('slot-jump').addEventListener('click', () => usePowerup('jump'));
+
+startBtn.addEventListener('click', initGame);
+
+// Draw placeholder screen
+ctx.fillStyle = '#0d2137';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.font = 'bold 32px Fredoka One, cursive';
+ctx.fillStyle = '#ffd600';
+ctx.textAlign = 'center';
+ctx.fillText('🐷 Piggy Splash', canvas.width/2, canvas.height/2 - 10);
+ctx.font = '16px Nunito';
+ctx.fillStyle = '#78909c';
+ctx.fillText('Press Start!', canvas.width/2, canvas.height/2 + 30);
+</script>
+</body>
+</html>
