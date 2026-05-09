@@ -185,6 +185,25 @@ body::after{
   .panel{width:90px;}
   .panel-value{font-size:0.8rem;}
 }
+
+.ov-input{
+  background:#080812;border:1px solid #00f0f0;border-radius:4px;
+  color:#00f0f0;font-family:'Orbitron',monospace;font-size:0.7rem;
+  letter-spacing:2px;padding:8px 12px;text-align:center;outline:none;width:180px;
+}
+.ov-input::placeholder{color:#223;}
+.ov-btn{
+  background:#080812;border:1px solid #00f0f0;border-radius:4px;
+  color:#00f0f0;font-family:'Orbitron',monospace;font-size:0.55rem;
+  letter-spacing:3px;padding:8px 20px;cursor:pointer;
+}
+.ov-btn:hover{background:#0c0c20;}
+.lb-wrap{font-size:0.46rem;letter-spacing:1px;color:#334;text-align:center;line-height:2.1;margin-top:2px;}
+.lb-title{font-size:0.42rem;letter-spacing:3px;color:#334;margin-bottom:3px;}
+.lb-entry{color:#445;}
+.lb-entry b{color:#00f0f0;}
+.lb-you{color:#ffd700!important;text-shadow:0 0 8px #ffd700;}
+.lb-you b{color:#ffd700!important;}
 </style>
 </head>
 <body>
@@ -220,10 +239,7 @@ body::after{
     <canvas id="gameCanvas"></canvas>
     <canvas id="particleCanvas"></canvas>
     <div id="tetris-text">TETRIS!</div>
-    <div id="overlay">
-      <div class="ov-title cyan">NEON DROP</div>
-      <div class="ov-sub">PRESS SPACE TO START</div>
-    </div>
+    <div id="overlay"></div>
   </div>
 
   <!-- Right Panel -->
@@ -359,6 +375,7 @@ const KICKS_I = {
 // ── State ─────────────────────────────────────────────────────────────────────
 let board, current, next3=[], held=null, holdUsed=false;
 let score=0, highScore=0, level=1, lines=0;
+let playerName='';
 let dropTimer=0, dropInterval=1000;
 let state='start'; // start | playing | paused | over | clearing
 let glowT=0;
@@ -466,7 +483,7 @@ function checkLines(){
   score+=pts;
   lines+=full.length;
   level=Math.floor(lines/10)+1;
-  dropInterval=Math.max(100,1000-(level-1)*90);
+  dropInterval=Math.max(50,Math.round(1000*Math.pow(0.78,level-1)));
   if(score>highScore) highScore=score;
   updateUI();
   if(full.length===4) showTetrisText();
@@ -521,18 +538,59 @@ function initGame(){
 function endGame(){
   state='over';
   if(score>highScore) highScore=score;
+  if(playerName) saveLB(playerName,score);
   showOverlay('over');
+}
+
+// ── Leaderboard ───────────────────────────────────────────────────────────────
+function getLB(){try{return JSON.parse(localStorage.getItem('neonDropLB')||'[]');}catch{return[];}}
+function saveLB(name,sc){
+  const lb=getLB();
+  lb.push({name,score:sc});
+  lb.sort((a,b)=>b.score-a.score);
+  lb.splice(10);
+  localStorage.setItem('neonDropLB',JSON.stringify(lb));
+}
+function lbHTML(highlight){
+  const lb=getLB().slice(0,7);
+  if(!lb.length) return '<div class="lb-wrap"><div class="lb-title">LEADERBOARD</div><div style="color:#223">No scores yet</div></div>';
+  const rows=lb.map((e,i)=>{
+    const you=highlight&&e.name===highlight&&e.score===score;
+    return `<div class="lb-entry${you?' lb-you':''}"><span style="color:#334">${i+1}.</span> ${e.name} <b>${String(e.score).padStart(6,'0')}</b></div>`;
+  }).join('');
+  return `<div class="lb-wrap"><div class="lb-title">LEADERBOARD</div>${rows}</div>`;
 }
 
 function showOverlay(type){
   overlay.style.display='flex';
   if(type==='start'){
-    overlay.innerHTML=`<div class="ov-title cyan">NEON DROP</div><div class="ov-sub">PRESS SPACE TO START</div>`;
+    overlay.innerHTML=`
+      <div class="ov-title cyan">NEON DROP</div>
+      <input class="ov-input" id="nameInput" maxlength="12" placeholder="YOUR NAME" value="${playerName}" spellcheck="false" autocomplete="off">
+      <button class="ov-btn" id="startBtn">PLAY</button>
+      ${lbHTML(null)}`;
+    const inp=document.getElementById('nameInput');
+    inp.focus(); inp.select();
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();tryStart();}});
+    document.getElementById('startBtn').addEventListener('click',tryStart);
   } else if(type==='over'){
-    overlay.innerHTML=`<div class="ov-title red">GAME OVER</div><div class="ov-row">SCORE <span>${score}</span></div><div class="ov-row">BEST <span>${highScore}</span></div><div class="ov-sub">PRESS SPACE TO RESTART</div>`;
+    overlay.innerHTML=`
+      <div class="ov-title red">GAME OVER</div>
+      <div class="ov-row">SCORE <span>${score}</span></div>
+      <div class="ov-row">BEST <span>${highScore}</span></div>
+      ${lbHTML(playerName)}
+      <div class="ov-sub">PRESS SPACE TO PLAY AGAIN</div>`;
   } else {
     overlay.innerHTML=`<div class="ov-title gold">PAUSED</div><div class="ov-sub">PRESS ESC TO RESUME</div>`;
   }
+}
+
+function tryStart(){
+  const inp=document.getElementById('nameInput');
+  const name=inp?inp.value.trim():playerName;
+  if(!name){if(inp)inp.focus();return;}
+  playerName=name;
+  initGame();
 }
 
 function shakeBoard(){
@@ -761,7 +819,8 @@ function loop(ts){
 document.addEventListener('keydown',e=>{
   if(e.key===' '){
     e.preventDefault();
-    if(state==='start'||state==='over') initGame();
+    if(state==='start') tryStart();
+    else if(state==='over') initGame();
     else if(state==='playing') hardDrop();
     return;
   }
@@ -797,6 +856,7 @@ mbind('mb-hold',  ()=>doHold());
 // ── Boot ──────────────────────────────────────────────────────────────────────
 board=emptyBoard();
 updateUI();
+showOverlay('start');
 raf=requestAnimationFrame(loop);
 </script>
 </body>
