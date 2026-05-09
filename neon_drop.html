@@ -235,10 +235,10 @@ body::after{
     <div class="panel-box" style="flex:1">
       <div class="panel-label">Controls</div>
       <div class="controls-list">
-        <b>← →</b> Move<br>
-        <b>↓</b> Soft Drop<br>
+        <b>← → / A D</b> Move<br>
+        <b>↓ / S</b> Soft Drop<br>
         <b>Space</b> Hard Drop<br>
-        <b>↑ / Z</b> Rotate CW<br>
+        <b>↑ W Z</b> Rotate CW<br>
         <b>X</b> Rotate CCW<br>
         <b>C</b> Hold<br>
         <b>Esc</b> Pause
@@ -772,10 +772,10 @@ document.addEventListener('keydown',e=>{
   }
   if(state!=='playing') return;
   switch(e.key){
-    case 'ArrowLeft': e.preventDefault(); if(fits(current,-1,0)) current.x--; break;
-    case 'ArrowRight':e.preventDefault(); if(fits(current,1,0))  current.x++; break;
-    case 'ArrowDown': e.preventDefault(); softDrop(); break;
-    case 'ArrowUp': case 'z': case 'Z': rotate('cw'); break;
+    case 'ArrowLeft': case 'a': case 'A': e.preventDefault(); if(fits(current,-1,0)) current.x--; break;
+    case 'ArrowRight':case 'd': case 'D': e.preventDefault(); if(fits(current,1,0))  current.x++; break;
+    case 'ArrowDown': case 's': case 'S': e.preventDefault(); softDrop(); break;
+    case 'ArrowUp': case 'w': case 'W': case 'z': case 'Z': rotate('cw'); break;
     case 'x': case 'X': rotate('ccw'); break;
     case 'c': case 'C': doHold(); break;
   }
