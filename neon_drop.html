@@ -41,26 +41,26 @@ body::after{
 .panel{
   width:130px;
   background:#05050d;
-  border:1px solid #111128;
+  border:1px solid #2a2a6a;
   border-radius:8px;
   padding:10px;
   display:flex;
   flex-direction:column;
   gap:10px;
-  box-shadow:0 0 24px rgba(0,80,255,0.08);
+  box-shadow:0 0 18px rgba(0,80,255,0.18),0 0 2px #1a1a4a;
 }
 
 .panel-box{
-  border:1px solid #111128;
+  border:1px solid #222255;
   border-radius:6px;
   padding:8px;
-  background:#020208;
+  background:#020210;
 }
 
 .panel-label{
   font-size:0.48rem;
   letter-spacing:3px;
-  color:#223388;
+  color:#7788cc;
   text-transform:uppercase;
   margin-bottom:5px;
   font-weight:700;
@@ -77,10 +77,10 @@ body::after{
 .controls-list{
   font-size:0.42rem;
   letter-spacing:0.5px;
-  color:#223;
+  color:#6677aa;
   line-height:2.1;
 }
-.controls-list b{color:#334455;}
+.controls-list b{color:#99aacc;}
 
 #board-container{
   position:relative;
@@ -89,8 +89,8 @@ body::after{
 
 #gameCanvas{
   display:block;
-  border:1px solid #111128;
-  box-shadow:0 0 40px rgba(0,80,255,0.12),0 0 80px rgba(0,0,0,0.8);
+  border:2px solid #00f0f0;
+  box-shadow:0 0 8px #00f0f0,0 0 22px rgba(0,240,240,0.5),0 0 60px rgba(0,240,240,0.18),0 0 80px rgba(0,0,0,0.8);
 }
 
 #particleCanvas{
@@ -146,6 +146,22 @@ body::after{
 }
 
 .mini-canvas{display:block;margin:0 auto;}
+
+#combo-text{
+  position:absolute;
+  top:38%;left:50%;
+  transform:translate(-50%,-50%);
+  font-size:1.05rem;
+  font-weight:900;
+  letter-spacing:5px;
+  color:#f0a000;
+  text-shadow:0 0 16px #f0a000,0 0 40px #f0a000;
+  pointer-events:none;
+  z-index:21;
+  opacity:0;
+  transition:none;
+  white-space:nowrap;
+}
 
 .hold-dim{opacity:0.35;}
 
@@ -229,6 +245,10 @@ body::after{
       <div class="panel-value" id="levelVal">1</div>
     </div>
     <div class="panel-box">
+      <div class="panel-label">Mult</div>
+      <div class="panel-value" id="multVal" style="color:#f0a000;text-shadow:0 0 8px #f0a000;">×1</div>
+    </div>
+    <div class="panel-box">
       <div class="panel-label">Lines</div>
       <div class="panel-value" id="linesVal">0</div>
     </div>
@@ -239,6 +259,7 @@ body::after{
     <canvas id="gameCanvas"></canvas>
     <canvas id="particleCanvas"></canvas>
     <div id="tetris-text">TETRIS!</div>
+    <div id="combo-text"></div>
     <div id="overlay"></div>
   </div>
 
@@ -296,8 +317,10 @@ const overlay    = document.getElementById('overlay');
 const scoreEl    = document.getElementById('scoreVal');
 const bestEl     = document.getElementById('bestVal');
 const levelEl    = document.getElementById('levelVal');
+const multEl     = document.getElementById('multVal');
 const linesEl    = document.getElementById('linesVal');
 const tetrisText = document.getElementById('tetris-text');
+const comboText  = document.getElementById('combo-text');
 const holdBox    = document.getElementById('holdBox');
 
 // ── Colors ────────────────────────────────────────────────────────────────────
@@ -375,6 +398,7 @@ const KICKS_I = {
 // ── State ─────────────────────────────────────────────────────────────────────
 let board, current, next3=[], held=null, holdUsed=false;
 let score=0, highScore=0, level=1, lines=0;
+let combo=0, b2b=false;
 let playerName='';
 let dropTimer=0, dropInterval=1000;
 let state='start'; // start | playing | paused | over | clearing
@@ -431,7 +455,7 @@ function hardDrop(){
   if(state!=='playing') return;
   let dy=0;
   while(fits(current,0,dy+1)) dy++;
-  score+=dy*2;
+  score+=dy*level;
   current.y+=dy;
   lock();
   shakeBoard();
@@ -439,7 +463,7 @@ function hardDrop(){
 
 function softDrop(){
   if(state!=='playing') return;
-  if(fits(current,0,1)){current.y++;score+=1;dropTimer=0;}
+  if(fits(current,0,1)){current.y++;score+=level;dropTimer=0;}
   else lock();
 }
 
@@ -473,20 +497,30 @@ function checkLines(){
   const full=[];
   for(let r=0;r<ROWS;r++) if(board[r].every(c=>c!==null)) full.push(r);
 
-  if(!full.length){spawn();return;}
+  if(!full.length){combo=0;updateUI();spawn();return;}
 
   state='clearing';
   flashRows=full;
   flashTimer=0; flashPhase=0;
 
-  const pts=[0,100,300,500,800][full.length]*level;
+  const isTetris=full.length===4;
+  // Back-to-back bonus: consecutive Tetrises (or T-spins) get 1.5×
+  const b2bMult=(b2b&&isTetris)?1.5:1;
+  const basePts=[0,100,300,500,800][full.length];
+  // Combo bonus: 50 × combo_count × level added on top
+  const comboBonus=50*combo*level;
+  const pts=Math.round(basePts*level*b2bMult)+comboBonus;
   score+=pts;
+  combo++;
+  b2b=isTetris;
+
   lines+=full.length;
   level=Math.floor(lines/10)+1;
   dropInterval=Math.max(50,Math.round(1000*Math.pow(0.78,level-1)));
   if(score>highScore) highScore=score;
   updateUI();
-  if(full.length===4) showTetrisText();
+  if(isTetris) showTetrisText();
+  if(combo>1) showComboText(combo);
 }
 
 function clearLines(){
@@ -523,7 +557,7 @@ function initGame(){
   bag=[]; refillBag(); refillBag();
   next3=[fromBag(),fromBag(),fromBag()];
   held=null; holdUsed=false;
-  score=0; level=1; lines=0;
+  score=0; level=1; lines=0; combo=0; b2b=false;
   dropTimer=0; dropInterval=1000;
   flashRows=[]; particles=[]; lockCells=[]; lockFlashT=0;
   state='playing';
@@ -623,6 +657,21 @@ function updateUI(){
   bestEl.textContent=String(highScore).padStart(6,'0');
   levelEl.textContent=level;
   linesEl.textContent=lines;
+  // Effective multiplier = level base + 0.5 per active combo streak
+  const effMult=combo>0?level+(combo-1)*0.5:level;
+  multEl.textContent='×'+(Number.isInteger(effMult)?effMult:effMult.toFixed(1));
+}
+
+function showComboText(n){
+  comboText.textContent='COMBO ×'+n;
+  comboText.style.transition='none';
+  comboText.style.opacity='1';
+  comboText.style.transform='translate(-50%,-50%)';
+  setTimeout(()=>{
+    comboText.style.transition='all 1s ease';
+    comboText.style.opacity='0';
+    comboText.style.transform='translate(-50%,-170%)';
+  },70);
 }
 
 // ── Draw cell ─────────────────────────────────────────────────────────────────
@@ -660,10 +709,28 @@ function drawBoard(){
   ctx.fillRect(0,0,W,H);
 
   // Grid lines
-  ctx.strokeStyle='rgba(15,15,40,0.9)';
+  ctx.strokeStyle='rgba(30,30,80,0.85)';
   ctx.lineWidth=0.5;
   for(let c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(c*CELL,0);ctx.lineTo(c*CELL,H);ctx.stroke();}
   for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*CELL);ctx.lineTo(W,r*CELL);ctx.stroke();}
+
+  // Corner markers
+  const CL=22, pulse=0.7+0.3*Math.sin(glowT*1.2);
+  ctx.save();
+  ctx.strokeStyle=`rgba(0,240,240,${pulse})`;
+  ctx.shadowColor='#00f0f0';
+  ctx.shadowBlur=12;
+  ctx.lineWidth=2.5;
+  ctx.lineCap='square';
+  // Top-left
+  ctx.beginPath();ctx.moveTo(0,CL);ctx.lineTo(0,0);ctx.lineTo(CL,0);ctx.stroke();
+  // Top-right
+  ctx.beginPath();ctx.moveTo(W-CL,0);ctx.lineTo(W,0);ctx.lineTo(W,CL);ctx.stroke();
+  // Bottom-left
+  ctx.beginPath();ctx.moveTo(0,H-CL);ctx.lineTo(0,H);ctx.lineTo(CL,H);ctx.stroke();
+  // Bottom-right
+  ctx.beginPath();ctx.moveTo(W-CL,H);ctx.lineTo(W,H);ctx.lineTo(W,H-CL);ctx.stroke();
+  ctx.restore();
 
   // Board cells
   for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
