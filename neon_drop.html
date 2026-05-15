@@ -89,6 +89,11 @@ body::after{
 
 #gameCanvas{
   display:block;
+  border:2px solid #1a1a3a;
+  box-shadow:0 0 80px rgba(0,0,0,0.8);
+  transition:border-color 0.4s,box-shadow 0.4s;
+}
+#gameCanvas.active{
   border:2px solid #00f0f0;
   box-shadow:0 0 8px #00f0f0,0 0 22px rgba(0,240,240,0.5),0 0 60px rgba(0,240,240,0.18),0 0 80px rgba(0,0,0,0.8);
 }
@@ -562,6 +567,7 @@ function initGame(){
   flashRows=[]; particles=[]; lockCells=[]; lockFlashT=0;
   state='playing';
   overlay.style.display='none';
+  canvas.classList.add('active');
   holdBox.className='panel-box';
   updateUI();
   spawn();
@@ -597,6 +603,7 @@ function lbHTML(highlight){
 
 function showOverlay(type){
   overlay.style.display='flex';
+  if(type==='start'||type==='over') canvas.classList.remove('active');
   if(type==='start'){
     overlay.innerHTML=`
       <div class="ov-title cyan">NEON DROP</div>
@@ -714,7 +721,8 @@ function drawBoard(){
   for(let c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(c*CELL,0);ctx.lineTo(c*CELL,H);ctx.stroke();}
   for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*CELL);ctx.lineTo(W,r*CELL);ctx.stroke();}
 
-  // Corner markers
+  // Corner markers — only while actively playing
+  if(state!=='playing'&&state!=='clearing') return;
   const CL=22, pulse=0.7+0.3*Math.sin(glowT*1.2);
   ctx.save();
   ctx.strokeStyle=`rgba(0,240,240,${pulse})`;
